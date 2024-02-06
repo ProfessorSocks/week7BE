@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 import recipes.dao.RecipeDao;
 import recipes.entity.Recipe;
@@ -96,6 +97,19 @@ public class RecipeService {
 
 	public Recipe addRecipe(Recipe recipe) {
 		return recipeDao.insertRecipe(recipe);
+	}
+
+	public List<Recipe> fetchRecipes() {
+		return recipeDao.fetchAllRecipes();
+	}
+	
+	public Optional<Recipe> fetchRecipeById(Integer RecipeId) {
+		try{
+			return recipeDao.fetchRecipeById(RecipeId);
+		}catch(Exception e) {
+			throw new DbException(e);
+		}
+		
 	}
 	
 //	public static void main(String[] args) {

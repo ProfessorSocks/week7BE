@@ -3,6 +3,7 @@ package recipes;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Scanner;
 
 import recipes.dao.DbConnection;
@@ -17,7 +18,9 @@ public class recipes {
 	
 	private List<String> operations = List.of(
 			"1) Create and populate all tables",
-			"2) Add a recipe"
+			"2) Add a recipe",
+			"3) List recipes",
+			"4) Select a recipe"
 			);
 	
 	
@@ -47,6 +50,12 @@ public class recipes {
 				case 2:
 					addRecipe();
 					break;
+				case 3:
+					listRecipes();
+					break;
+				case 4:
+					setCurrentRecipe();
+					break;
 					
 				default:
 					System.out.println("\n" + operation + " is not vaild");
@@ -58,6 +67,35 @@ public class recipes {
 			}
 		}
 		
+	}
+
+	private void setCurrentRecipe() {
+		List<Recipe> recipes = listRecipes();
+		
+		Integer recipeId = getIntInput("Select an id!");
+		
+		Optional<Recipe> curRecipe = null;
+		
+		for(Recipe recipe : recipes) {
+			if(recipe.getRecipeId().equals(recipeId)) {
+				curRecipe = recipeService.fetchRecipeById(recipeId);
+				break;
+			}
+		
+		}
+		if(Objects.isNull(curRecipe)) {
+			System.out.println("\n Invalid ID");
+		}
+	}
+
+	private List<Recipe> listRecipes() {
+		List<Recipe> recipes = recipeService.fetchRecipes();
+		
+		System.out.println("\nRecipes:");
+		
+		recipes.forEach(recipe -> System.out.println("   " + recipe.getRecipeId() + ": " + recipe.getRecipeName()));
+		
+		return recipes;
 	}
 
 	private void addRecipe() {
@@ -80,6 +118,8 @@ public class recipes {
 		
 		Recipe dbRecipe = recipeService.addRecipe(recipe);
 		System.out.println("Added a recipe");
+		
+//		curRecipe = recipeService.fetchRecipeById(dbRecipe.getRecipeId());
 	}
 
 	private LocalTime minutesToLocalTime(Integer numMinutes) {
