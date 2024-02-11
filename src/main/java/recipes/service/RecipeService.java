@@ -4,12 +4,17 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
+import recipes.dao.DbConnection;
 import recipes.dao.RecipeDao;
+import recipes.entity.Ingredient;
 import recipes.entity.Recipe;
+import recipes.entity.Unit;
 import recipes.exception.DbException;
 
 public class RecipeService {
@@ -109,6 +114,15 @@ public class RecipeService {
 		}catch(Exception e) {
 			throw new DbException(e);
 		}
+		
+	}
+
+	public List<Unit> fetchUnits() {
+		return recipeDao.fetchUnits();
+	}
+
+	public void addIngredient(Ingredient ingr) {
+		recipeDao.addIngredientToRecipe(ingr);
 		
 	}
 	

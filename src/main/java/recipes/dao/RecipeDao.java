@@ -1,5 +1,6 @@
 package recipes.dao;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -214,4 +215,65 @@ public class RecipeDao extends DaoBase {
 			throw new DbException(e);
 		}
 	}
+
+	public List<Unit> fetchUnits() {
+		String sql = "SELECT * FROM " + UNIT_TABLE + " ORDER BY unit_name_singular";
+		
+		try(Connection conn = DbConnection.getConnection()){
+			startTransaction(conn);
+			
+			try(PreparedStatement stmt = conn.prepareStatement(sql)){
+				try(ResultSet rs = stmt.executeQuery()){
+					List<Unit> units = new LinkedList<>();
+					
+					while(rs.next()) {
+						units.add(extract(rs,Unit.class));
+						
+					}
+					
+					return units;
+				}
+			}catch(Exception e) {
+				rollbackTransaction(conn);
+				throw new DbException(e);
+			}
+			
+			
+		}catch(SQLException e) {
+			throw new DbException(e);
+		}
+	}
+
+	public void addIngredientToRecipe(Ingredient ingr) {
+		String sql = "INSERT INTO " + INGREDIENT_TABLE 
+				+ "(recipe_id, unit_id, ingredient_name, instruction, ingredient_order, amount)"
+				+ "VALUES (?,?,?,?,?,?)";
+		
+		try(Connection conn = DbConnection.getConnection()){
+			startTransaction(conn);
+			try {
+				Integer order = getNextSequenceNumber(conn, ingr.getRecipeId(), INGREDIENT_TABLE, "recipe_id");
+				try(PreparedStatement stmt = conn.prepareStatement(sql)){
+					setParameter(stmt, 1, ingr.getRecipeId(), Integer.class );
+					setParameter(stmt, 2, ingr.getUnit(), Integer.class);
+					setParameter(stmt, 3, ingr.getIngredientName(), String.class);
+					setParameter(stmt, 4, ingr.getInstruction(), String.class);
+					setParameter(stmt, 5, order, Integer.class);
+					setParameter(stmt, 6, ingr.getAmount(), Double.class);
+					
+					stmt.executeUpdate();
+					commitTransaction(conn);
+				}
+			}
+			catch(Exception e) {
+				rollbackTransaction(conn);
+				throw new DbException(e);
+			}
+			
+		}
+		catch (SQLException e) {
+			throw new DbException(e);
+		}
+	}
+	
 }

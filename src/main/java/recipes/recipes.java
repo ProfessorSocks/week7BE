@@ -1,5 +1,6 @@
 package recipes;
 
+import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Objects;
@@ -7,7 +8,9 @@ import java.util.Optional;
 import java.util.Scanner;
 
 import recipes.dao.DbConnection;
+import recipes.entity.Ingredient;
 import recipes.entity.Recipe;
+import recipes.entity.Unit;
 import recipes.exception.DbException;
 import recipes.service.RecipeService;
 
@@ -15,12 +18,14 @@ public class recipes {
 	
 	private Scanner scanner = new Scanner(System.in);
 	private RecipeService recipeService = new RecipeService();
+	private Recipe curRecipe;
 	
 	private List<String> operations = List.of(
 			"1) Create and populate all tables",
 			"2) Add a recipe",
 			"3) List recipes",
-			"4) Select a recipe"
+			"4) Select a recipe",
+			"5) add ingredient to current recipe"
 			);
 	
 	
@@ -56,6 +61,9 @@ public class recipes {
 				case 4:
 					setCurrentRecipe();
 					break;
+				case 5:
+					addIngredientToCurrentRecipe();
+					break;
 					
 				default:
 					System.out.println("\n" + operation + " is not vaild");
@@ -69,12 +77,51 @@ public class recipes {
 		
 	}
 
+	private void addIngredientToCurrentRecipe() {
+		if(Objects.isNull(curRecipe)) {
+			System.out.println("\nSelect a recipe first");
+			return;
+		}
+		
+		String name = getStringInput("Enter name");
+		String instruct = getStringInput("Enter Instructions");
+		Double inputAmount = getDoubleInput("Enter amount");
+		List<Unit> units = recipeService.fetchUnits();
+		
+		BigDecimal amount = Objects.isNull(inputAmount) ? null : new BigDecimal(inputAmount).setScale(2);
+		
+		System.out.println("Units: ");
+		
+		units.forEach(unit -> System.out.println("    " + unit.getUnitId() + ": " + unit.getUnitNameSingular() + " (" + unit.getUnitNamePlural() + ")"));
+		
+		Integer unitId = getIntInput("Enter a unit id");
+		
+		Unit unit = new Unit();
+		
+		unit.setUnitId(unitId);
+		
+		Ingredient ingr = new Ingredient();
+		
+		ingr.setRecipeId(curRecipe.getRecipeId());
+		ingr.setUnit(unit);
+		ingr.setIngredientName(name);
+		ingr.setInstruction(instruct);
+		ingr.setAmount(amount);
+		
+		recipeService.addIngredient(ingr);
+		
+		curRecipe = recipeService.fetchRecipeById(ingr.getRecipeId());
+		
+		
+		
+	}
+
 	private void setCurrentRecipe() {
 		List<Recipe> recipes = listRecipes();
 		
 		Integer recipeId = getIntInput("Select an id!");
 		
-		Optional<Recipe> curRecipe = null;
+		curRecipe = null;
 		
 		for(Recipe recipe : recipes) {
 			if(recipe.getRecipeId().equals(recipeId)) {
@@ -83,8 +130,10 @@ public class recipes {
 			}
 		
 		}
-		if(Objects.isNull(curRecipe)) {
-			System.out.println("\n Invalid ID");
+		if (Objects.isNull(curRecipe)) {
+			System.out.println("\nYou are not working with a recipe.");
+		} else {
+			System.out.println("\nYou are working with recipe " + curRecipe);
 		}
 	}
 
