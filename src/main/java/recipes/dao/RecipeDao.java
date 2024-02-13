@@ -246,8 +246,8 @@ public class RecipeDao extends DaoBase {
 
 	public void addIngredientToRecipe(Ingredient ingr) {
 		String sql = "INSERT INTO " + INGREDIENT_TABLE 
-				+ "(recipe_id, unit_id, ingredient_name, instruction, ingredient_order, amount)"
-				+ "VALUES (?,?,?,?,?,?)";
+				+ " (recipe_id, unit_id, ingredient_name, instruction, ingredient_order, amount) "
+				+ "VALUES (?, ?, ?, ?, ? ,?)";
 		
 		try(Connection conn = DbConnection.getConnection()){
 			startTransaction(conn);
@@ -255,11 +255,11 @@ public class RecipeDao extends DaoBase {
 				Integer order = getNextSequenceNumber(conn, ingr.getRecipeId(), INGREDIENT_TABLE, "recipe_id");
 				try(PreparedStatement stmt = conn.prepareStatement(sql)){
 					setParameter(stmt, 1, ingr.getRecipeId(), Integer.class );
-					setParameter(stmt, 2, ingr.getUnit(), Integer.class);
+					setParameter(stmt, 2, ingr.getUnit().getUnitId(), Integer.class);
 					setParameter(stmt, 3, ingr.getIngredientName(), String.class);
 					setParameter(stmt, 4, ingr.getInstruction(), String.class);
 					setParameter(stmt, 5, order, Integer.class);
-					setParameter(stmt, 6, ingr.getAmount(), Double.class);
+					setParameter(stmt, 6, ingr.getAmount(), BigDecimal.class);
 					
 					stmt.executeUpdate();
 					commitTransaction(conn);
@@ -272,6 +272,158 @@ public class RecipeDao extends DaoBase {
 			
 		}
 		catch (SQLException e) {
+			throw new DbException(e);
+		}
+	}
+
+	public void addStepToRecipe(Step step) {
+		String sql = "INSERT INTO " + STEP_TABLE + " (recipe_id, step_order, step_text)"
+				+ " VALUES (?, ?, ?)";
+		
+		try(Connection conn = DbConnection.getConnection()){
+			startTransaction(conn);
+			
+			Integer order = getNextSequenceNumber(conn, step.getRecipeId(), STEP_TABLE, "recipe_id");
+			
+			try(PreparedStatement stmt = conn.prepareStatement(sql)){
+				setParameter(stmt, 1, step.getRecipeId(), Integer.class);
+				setParameter(stmt, 2, order, Integer.class);
+				setParameter(stmt, 3, step.getStepText(), String.class);
+				
+				stmt.executeUpdate();
+				commitTransaction(conn);
+				
+			}
+			catch(Exception e) {
+				rollbackTransaction(conn);
+				throw new DbException(e);
+			}
+			
+			
+		}catch (SQLException e) {
+			throw new DbException(e);
+		}
+	}
+
+	public List<Category> fetchAllCategories() {
+		String sql = "SELECT * FROM " + CATEGORY_TABLE + " ORDER BY category_name";
+		
+		try(Connection conn = DbConnection.getConnection()){
+			startTransaction(conn);
+			
+			try(PreparedStatement stmt = conn.prepareStatement(sql)){
+				try(ResultSet rs = stmt.executeQuery()){
+					List<Category> cates = new LinkedList<>();
+					
+					while(rs.next()) {
+						cates.add(extract(rs, Category.class));
+					}
+					
+					return cates;
+				}
+			}
+			catch(Exception e) {
+				rollbackTransaction(conn);
+				throw new DbException(e);
+			}
+		}catch (SQLException e) {
+			throw new DbException(e);
+		}
+	}
+
+	public void addCategoryToRecipe(Integer recipeId, String cateName) {
+		String subQuery = "(SELECT category_id FROM " + CATEGORY_TABLE
+				+ " WHERE category_name = ?)";
+		String sql = "INSERT INTO " + RECIPE_CATEGORY + "(recipe_id, category_id) VALUES (?, " + subQuery + ")";
+		
+		try(Connection conn = DbConnection.getConnection()){
+			startTransaction(conn);
+			
+			try(PreparedStatement stmt = conn.prepareStatement(sql)){
+				setParameter(stmt, 1, recipeId, Integer.class);
+				setParameter(stmt, 2, cateName, String.class);
+				
+				stmt.executeUpdate();
+				commitTransaction(conn);
+			}
+			
+			
+		}catch(SQLException e) {
+			throw new DbException(e);
+		}
+		
+	}
+
+	public List<Step> fetchRecipeSteps(Integer recipeId) {
+		try(Connection conn = DbConnection.getConnection()){
+			startTransaction(conn);
+			
+			try {
+				List<Step> steps = fetchRecipeSteps(conn, recipeId);
+				commitTransaction(conn);
+				return steps;
+			}
+			catch(Exception e) {
+				rollbackTransaction(conn);
+				throw new DbException(e);
+			}
+			
+			
+		}catch(SQLException e) {
+			throw new DbException(e);
+		}
+	}
+
+	public boolean modifyStep(Step step) {
+		String sql = "UPDATE " + STEP_TABLE + " SET step_text = ? WHERE step_id = ?";
+		
+		try(Connection conn = DbConnection.getConnection()){
+			startTransaction(conn);
+			
+			try(PreparedStatement stmt = conn.prepareStatement(sql)){
+		
+				setParameter(stmt, 1, step.getStepText(), String.class);
+				setParameter(stmt, 2, step.getStepId(), Integer.class)	;
+				
+				boolean updated = stmt.executeUpdate() == 1;
+				
+				commitTransaction(conn);
+				
+				return updated;
+		
+				
+			}
+			catch(Exception e) {
+				rollbackTransaction(conn);
+				throw new DbException(e);
+			}
+			
+			
+		}catch(SQLException e) {
+			throw new DbException(e);
+		}
+	}
+
+	public boolean deleteRecipe(Integer recipeId) {
+		String sql = "DELETE FROM " + RECIPE_TABLE + " WHERE recipe_id = ?";
+		
+		try(Connection conn = DbConnection.getConnection()){
+			startTransaction(conn);
+			
+			try(PreparedStatement stmt = conn.prepareStatement(sql)){
+				setParameter(stmt, 1, recipeId, Integer.class);
+				
+				boolean deleted = stmt.executeUpdate() == 1;
+				
+				commitTransaction(conn);
+				return deleted;
+			}
+			catch(Exception e) {
+				rollbackTransaction(conn);
+				throw new DbException(e);
+			}
+			
+		}catch(SQLException e) {
 			throw new DbException(e);
 		}
 	}

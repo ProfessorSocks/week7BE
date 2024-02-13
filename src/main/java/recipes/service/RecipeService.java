@@ -8,12 +8,16 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale.Category;
+import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import recipes.dao.DbConnection;
 import recipes.dao.RecipeDao;
 import recipes.entity.Ingredient;
 import recipes.entity.Recipe;
+import recipes.entity.Step;
 import recipes.entity.Unit;
 import recipes.exception.DbException;
 
@@ -105,15 +109,14 @@ public class RecipeService {
 	}
 
 	public List<Recipe> fetchRecipes() {
-		return recipeDao.fetchAllRecipes();
+		return recipeDao.fetchAllRecipes()
+				.stream()
+				.sorted((r1, r2) -> r1.getRecipeId() - r2.getRecipeId())
+				.collect(Collectors.toList());
 	}
 	
-	public Optional<Recipe> fetchRecipeById(Integer RecipeId) {
-		try{
-			return recipeDao.fetchRecipeById(RecipeId);
-		}catch(Exception e) {
-			throw new DbException(e);
-		}
+	public Recipe fetchRecipeById(Integer RecipeId) {
+		return recipeDao.fetchRecipeById(RecipeId).orElseThrow(()-> new NoSuchElementException("Recipe with id=" + RecipeId + " does not exist"));
 		
 	}
 
@@ -123,6 +126,39 @@ public class RecipeService {
 
 	public void addIngredient(Ingredient ingr) {
 		recipeDao.addIngredientToRecipe(ingr);
+		
+	}
+
+	public void addStep(Step step) {
+		recipeDao.addStepToRecipe(step);
+		
+	}
+
+	public List<recipes.entity.Category> fetchCategories() {
+		return recipeDao.fetchAllCategories();
+	}
+
+	public void addCategoryToRecipe(Integer recipeId, String cateName) {
+		recipeDao.addCategoryToRecipe(recipeId, cateName);
+		
+	}
+
+	public List<Step> fetchSteps(Integer recipeId) {
+		// TODO Auto-generated method stub
+		return recipeDao.fetchRecipeSteps(recipeId);
+	}
+
+	public void modifyStep(Step step) {
+		if(!recipeDao.modifyStep(step)) {
+			throw new DbException("Step with id= "+ step.getStepId()+ " does not exist");
+		}
+		
+	}
+
+	public void deleteRecipe(Integer recipeId) {
+		if(!recipeDao.deleteRecipe(recipeId)) {
+			throw new DbException("Recipe Id is not valid");
+		}
 		
 	}
 	
